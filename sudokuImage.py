@@ -4,16 +4,19 @@ import numpy as np
 from matplotlib import pyplot as plt
 import itertools
 from Line import Line
+from OCR import OCR
+
+from pprint import pprint
 
 
 class SudokuImage():
     def __init__(self, PATH):
         self.image_path = PATH
 
-    def get_lines(self):
+    def get_lines(self, apSize):
         img = cv2.imread(self.image_path)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 90, 150, apertureSize=3)
+        edges = cv2.Canny(gray, 50, 120, apertureSize=apSize)
         kernel = np.ones((3, 3), np.uint8)
         edges = cv2.dilate(edges, kernel, iterations=1)
         kernel = np.ones((5, 5), np.uint8)
@@ -97,36 +100,90 @@ class SudokuImage():
         # sort lines by slope, taking first half will isolate horizontal lines
         lines.sort(key=lambda x: x.slope)
 
-        # find the intersections of all possible combinations of two lines
-        intersections = list(map(lambda x: x[0].find_intersection(
-            x[1]), list(itertools.combinations(lines, 2))))
-        # removing vlaues where no intersection, can be combined with previous step
-        intersections = [inter for inter in intersections if inter]
-
+        # find all the intersections for each horizontal line and sort by left to right
         intersections_by_line = {0: [], 1: [], 2: [],
                                  3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []}
+        for i, hline in enumerate(lines[:10]):
+            intersections_by_line[i] = sorted(list(
+                map(lambda x: hline.find_intersection(x), lines[10:])), key=lambda x: x[0])
 
-        # group intersections by line, can be combined with above
-        for inter in intersections:
-            for line_num, line in enumerate(lines[:len(lines)//2]):
-                if line.point_on_line(inter):
-                    intersections_by_line[line_num].append(inter)
-                    break
-
-        # sorting points left to right
-        for i in range(9):
-            intersections_by_line[i].sort(key=lambda x: x[0])
-
-        # loops over each line and the one above and adds the points as one grid, points are added as bottom left, bottom righ, top right then top left
-        grids = []
+        # loops over each line and the one above and adds the points as one grid, points are added as bottom left, bottom right, top right then top left
+        cells = []
         for i in range(9):
             for j in range(9):
-                grids.append((tuple(map(lambda x: round(x), intersections_by_line[i][j])), tuple(map(lambda x: round(x), intersections_by_line[i][j+1])),
+                cells.append((tuple(map(lambda x: round(x), intersections_by_line[i][j])), tuple(map(lambda x: round(x), intersections_by_line[i][j+1])),
                               tuple(map(lambda x: round(x), intersections_by_line[i+1][j+1])), tuple(map(lambda x: round(x), intersections_by_line[i+1][j]))))
-        return grids
+        return cells
+
+    def get_crop(self, cell):
+
+        with Image.open(self.image_path).convert("RGBA") as im:
+            imArray = np.asarray(im)
+
+            # create mask
+            polygon = cell
+            maskIm = Image.new('L', (imArray.shape[1], imArray.shape[0]), 0)
+            ImageDraw.Draw(maskIm).polygon(polygon, outline=1, fill=1)
+            mask = np.array(maskIm)
+
+            # assemble new image (uint8: 0-255)
+            newImArray = np.empty(imArray.shape, dtype='uint8')
+
+            # colors (three first columns, RGB)
+            newImArray[:, :, :3] = imArray[:, :, :3]
+
+            # transparency (4th column)
+            newImArray[:, :, 3] = mask*255
+
+            # back to Image from numpy
+            newIm = Image.fromarray(newImArray, "RGBA")
+            newIm = newIm.crop(newIm.getbbox())
+            # newIm.show()
+            return newIm
+            # newIm.save("out.png")
+
+    def get_OCR(self, image):
+        opcr = OCR(image)
+        opcr.process_image()
+        return opcr.main()
 
 
 if __name__ == "__main__":
-    Su = SudokuImage("fuzzy_sudoku.jpg")
-    # print(Su.get_lines())
-    print(Su.get_inters(Su.get_lines()))
+    Su = SudokuImage("web_sudoku.PNG")
+    for size in [7, 5, 3]:
+        print(size)
+        lines = Su.get_lines(size)
+        if len(lines) != 20:
+            continue
+        cells = Su.get_inters(lines)
+        break
+
+    def draw_board(board):
+        for i, line in enumerate(board):
+            if i % 3 == 0:
+                print("-"*27)
+            print(
+                f"{line[0]}  {line[1]}  {line[2]} | {line[3]}  {line[4]}  {line[5]} | {line[6]}  {line[7]}  {line[8]}")
+
+    board = [[], [], [], [], [], [], [], [], []]
+    for i in range(81):
+        print("cell", i)
+        im = Su.get_crop(cells[i])
+
+        pil_image = im.convert('RGB')
+        open_cv_image = np.array(pil_image)
+        # Convert RGB to BGR
+        open_cv_image = open_cv_image[:, :, ::-1].copy()
+        num = Su.get_OCR(open_cv_image)
+        board[i//9].append(num)
+
+    draw_board(board)
+
+    # print(cells[0])
+    # im = Su.get_crop(cells[72])
+
+    # pil_image = im.convert('RGB')
+    # open_cv_image = np.array(pil_image)
+    # # Convert RGB to BGR
+    # open_cv_image = open_cv_image[:, :, ::-1].copy()
+    # Su.get_OCR(open_cv_image)
