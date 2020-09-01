@@ -76,11 +76,12 @@ class OCR():
         gray = self.get_grayscale(deskew)
         thresh = self.thresholding(gray)
         rnoise = self.remove_noise(gray)
-        erode = self.erode(gray)
-        opening = self.opening(gray)
+        # erode = self.erode(gray)
+        # opening = self.opening(gray)
         canny = self.canny(gray)
 
-        self.images = [gray, rnoise, erode, thresh, deskew, opening, canny]
+        self.images = [gray, rnoise, deskew, canny,
+                       thresh]  # erode, thresh, opening
 
     def show_images(self, cols=1, titles=None):
 

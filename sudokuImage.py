@@ -7,6 +7,8 @@ from Line import Line
 from OCR import OCR
 
 from pprint import pprint
+from multiprocessing import Process
+import time
 
 
 class SudokuImage():
@@ -147,6 +149,17 @@ class SudokuImage():
         opcr.process_image()
         return opcr.main()
 
+    def pop_board(self, cells, indexes, board):
+        for i in indexes:
+            im = self.get_crop(cells[i])
+
+            pil_image = im.convert('RGB')
+            open_cv_image = np.array(pil_image)
+            # Convert RGB to BGR
+            open_cv_image = open_cv_image[:, :, ::-1].copy()
+            num = self.get_OCR(open_cv_image)
+            board[i//9].append(int(num))
+
 
 if __name__ == "__main__":
     Su = SudokuImage("web_sudoku.PNG")
@@ -165,19 +178,8 @@ if __name__ == "__main__":
             print(
                 f"{line[0]}  {line[1]}  {line[2]} | {line[3]}  {line[4]}  {line[5]} | {line[6]}  {line[7]}  {line[8]}")
 
-    board = [[], [], [], [], [], [], [], [], []]
-    for i in range(81):
-        print("cell", i)
-        im = Su.get_crop(cells[i])
-
-        pil_image = im.convert('RGB')
-        open_cv_image = np.array(pil_image)
-        # Convert RGB to BGR
-        open_cv_image = open_cv_image[:, :, ::-1].copy()
-        num = Su.get_OCR(open_cv_image)
-        board[i//9].append(num)
-
-    draw_board(board)
+    # for i in range(81):
+    #     pop_board(i, board)
 
     # print(cells[0])
     # im = Su.get_crop(cells[72])
