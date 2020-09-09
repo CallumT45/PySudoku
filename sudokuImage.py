@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageGrab
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
@@ -12,19 +12,29 @@ import time
 
 
 class SudokuImage():
-    def __init__(self, PATH):
-        self.image_path = PATH
+    def __init__(self, clipboard=False, PATH=""):
+        self.clipboard = clipboard
+        if clipboard:
+            stall = input("Take a screenshot, then press enter")
+            self.image = ImageGrab.grabclipboard().convert('RGB')
+            self.image = np.array(self.image)
+            # Convert RGB to BGR
+            self.image = self.image[:, :, ::-1].copy()
+        else:
+            self.image = cv2.imread(PATH)
 
-    def get_lines(self, apSize):
-        img = cv2.imread(self.image_path)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 50, 120, apertureSize=apSize)
+    def get_lines(self, appSize):
+        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        edges = cv2.Canny(gray, 90, 150, apertureSize=appSize)
         kernel = np.ones((3, 3), np.uint8)
         edges = cv2.dilate(edges, kernel, iterations=1)
         kernel = np.ones((5, 5), np.uint8)
         edges = cv2.erode(edges, kernel, iterations=1)
 
         lines = cv2.HoughLines(edges, 1, np.pi/180, 150)
+
+        if len(lines) > 50:
+            return lines
 
         if not lines.any():
             print('No lines were found')
@@ -100,7 +110,8 @@ class SudokuImage():
         # maps all input lines to a Line object and places into a list
         lines = list(map(lambda x: Line(x[0], x[1]), input_lines))
         # sort lines by slope, taking first half will isolate horizontal lines
-        lines.sort(key=lambda x: x.slope)
+        lines.sort(key=lambda x: abs(x.slope))
+        # print(list(map(lambda x: x.slope, lines)))
 
         # find all the intersections for each horizontal line and sort by left to right
         intersections_by_line = {0: [], 1: [], 2: [],
@@ -119,30 +130,37 @@ class SudokuImage():
 
     def get_crop(self, cell):
 
-        with Image.open(self.image_path).convert("RGBA") as im:
-            imArray = np.asarray(im)
+        # move outside function
+        if self.clipboard:
+            pil_image = ImageGrab.grabclipboard().convert("RGBA")
 
-            # create mask
-            polygon = cell
-            maskIm = Image.new('L', (imArray.shape[1], imArray.shape[0]), 0)
-            ImageDraw.Draw(maskIm).polygon(polygon, outline=1, fill=1)
-            mask = np.array(maskIm)
+        else:
+            image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(image).convert("RGBA")
 
-            # assemble new image (uint8: 0-255)
-            newImArray = np.empty(imArray.shape, dtype='uint8')
+        imArray = np.asarray(pil_image)
 
-            # colors (three first columns, RGB)
-            newImArray[:, :, :3] = imArray[:, :, :3]
+        # create mask
+        polygon = cell
+        maskIm = Image.new('L', (imArray.shape[1], imArray.shape[0]), 0)
+        ImageDraw.Draw(maskIm).polygon(polygon, outline=1, fill=1)
+        mask = np.array(maskIm)
 
-            # transparency (4th column)
-            newImArray[:, :, 3] = mask*255
+        # assemble new image (uint8: 0-255)
+        newImArray = np.empty(imArray.shape, dtype='uint8')
 
-            # back to Image from numpy
-            newIm = Image.fromarray(newImArray, "RGBA")
-            newIm = newIm.crop(newIm.getbbox())
-            # newIm.show()
-            return newIm
-            # newIm.save("out.png")
+        # colors (three first columns, RGB)
+        newImArray[:, :, :3] = imArray[:, :, :3]
+
+        # transparency (4th column)
+        newImArray[:, :, 3] = mask*255
+
+        # back to Image from numpy
+        newIm = Image.fromarray(newImArray, "RGBA")
+        newIm = newIm.crop(newIm.getbbox())
+        # newIm.show()
+        return newIm
+        # newIm.save("out.png")
 
     def get_OCR(self, image):
         opcr = OCR(image)
@@ -162,14 +180,9 @@ class SudokuImage():
 
 
 if __name__ == "__main__":
-    Su = SudokuImage("web_sudoku.PNG")
-    for size in [7, 5, 3]:
-        print(size)
-        lines = Su.get_lines(size)
-        if len(lines) != 20:
-            continue
-        cells = Su.get_inters(lines)
-        break
+    Su = SudokuImage(False, "images\web_sudoku.PNG")
+    lines = Su.get_lines(7)
+    cells = Su.get_inters(lines)
 
     def draw_board(board):
         for i, line in enumerate(board):
@@ -181,8 +194,8 @@ if __name__ == "__main__":
     # for i in range(81):
     #     pop_board(i, board)
 
-    # print(cells[0])
-    # im = Su.get_crop(cells[72])
+    print(cells[0])
+    Su.get_crop(cells[72])
 
     # pil_image = im.convert('RGB')
     # open_cv_image = np.array(pil_image)

@@ -71,12 +71,18 @@ def pool_process(cells):
 
 if __name__ == "__main__":
 
-    Su = SudokuImage("web_sudoku.PNG")
+    Su = SudokuImage(False, "images/web_sudoku.PNG")
+    # Su = SudokuImage("images/fuzzy_sudoku.jpg")
+    # Su = SudokuImage(True, "")
     for size in [7, 5, 3]:
         print(size)
         lines = Su.get_lines(size)
+        print(len(lines))
         if len(lines) != 20:
             continue
         cells = Su.get_inters(lines)
+        pool_process(cells)
         break
-    pool_process(cells)
+
+
+# issue with ocr when from clipboard

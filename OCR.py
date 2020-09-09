@@ -27,12 +27,6 @@ class OCR():
         # 255 and all background pixels to 0
         return cv2.threshold(image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
-    # dilation
-
-    def dilate(self, image):
-        kernel = np.ones((5, 5), np.uint8)
-        return cv2.dilate(image, kernel, iterations=1)
-
     # erosion
 
     def erode(self, image):
@@ -70,18 +64,32 @@ class OCR():
                                  flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
         return rotated
 
+    def morph(self, image):
+        cv_img = cv2.medianBlur(image, 5)
+
+        ret, th1 = cv2.threshold(cv_img, 127, 255, cv2.THRESH_BINARY)
+        th2 = cv2.adaptiveThreshold(
+            cv_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 11, 2)
+        th3 = cv2.adaptiveThreshold(
+            cv_img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+
+        kernel_erosion = np.ones((3, 3), np.uint8)
+        kernel_dilation = np.ones((1, 1), np.uint8)
+        erosion = cv2.erode(th2, kernel_erosion, iterations=1)
+        dilation = cv2.dilate(erosion, kernel_dilation, iterations=1)
+        return dilation
+
     def process_image(self):
 
         deskew = self.deskew(self.image)
         gray = self.get_grayscale(deskew)
         thresh = self.thresholding(gray)
-        rnoise = self.remove_noise(gray)
         # erode = self.erode(gray)
-        # opening = self.opening(gray)
-        canny = self.canny(gray)
+        opening = self.opening(gray)
+        # canny = self.canny(gray)
+        morph = self.morph(gray)
 
-        self.images = [gray, rnoise, deskew, canny,
-                       thresh]  # erode, thresh, opening
+        self.images = [gray, thresh, morph]
 
     def show_images(self, cols=1, titles=None):
 
@@ -95,7 +103,6 @@ class OCR():
                 plt.gray()
             plt.imshow(image)
             a.set_title(title)
-        # fig.set_size_inches(np.array(fig.get_size_inches()) * n_images)
         plt.show()
 
     def main(self):
@@ -120,6 +127,7 @@ class OCR():
 
 
 if __name__ == "__main__":
-    ocr = OCR('out.png')
+
+    ocr = OCR(cv2.imread('out.PNG'))
     ocr.process_image()
-    ocr.main()
+    print(ocr.main())

@@ -22,9 +22,12 @@ class Line():
         y = self.findY(x)
         return (round(x, 2), round(y, 2))
 
-    def point_on_line(self, p):
-        return abs(p[1] - self.findY(p[0])) < 0.05
-
 
 if __name__ == "__main__":
-    Line([100, 1000], [100, -1000])
+    l1 = Line([100, 1000], [100, -1000])
+    l2 = Line([99, 1000], [102, -999])
+    print(l1.slope, l2.slope)
+    print(l1.find_intersection(l2))
+
+
+# investigate if slope 0 is an issue
