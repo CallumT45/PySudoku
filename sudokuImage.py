@@ -23,25 +23,26 @@ class SudokuImage():
         else:
             self.image = cv2.imread(PATH)
 
-    def get_lines(self, appSize):
+    def get_lines(self):
+        height, width, channels = self.image.shape
         gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-        edges = cv2.Canny(gray, 90, 150, apertureSize=appSize)
-        kernel = np.ones((3, 3), np.uint8)
-        edges = cv2.dilate(edges, kernel, iterations=1)
-        kernel = np.ones((5, 5), np.uint8)
-        edges = cv2.erode(edges, kernel, iterations=1)
+        edges = cv2.Canny(gray, 90, 180, apertureSize=3)
+        # kernel = np.ones((3, 3), np.uint8)
+        # edges = cv2.dilate(edges, kernel, iterations=1)
+        # kernel = np.ones((5, 5), np.uint8)
+        # edges = cv2.erode(edges, kernel, iterations=1)
 
         lines = cv2.HoughLines(edges, 1, np.pi/180, 150)
-
-        if len(lines) > 50:
-            return lines
 
         if not lines.any():
             print('No lines were found')
             exit()
 
         if filter:
-            rho_threshold = 15
+            if height < 400:
+                rho_threshold = 20
+            else:
+                rho_threshold = 40
             theta_threshold = 0.1
 
             # how many lines are similar to a given one
@@ -53,7 +54,7 @@ class SudokuImage():
 
                     rho_i, theta_i = lines[i][0]
                     rho_j, theta_j = lines[j][0]
-                    if abs(rho_i - rho_j) < rho_threshold and abs(theta_i - theta_j) < theta_threshold:
+                    if abs(abs(rho_i) - abs(rho_j)) < rho_threshold and abs(np.sin(theta_i) - np.sin(theta_j)) < theta_threshold:
                         similar_lines[i].append(j)
 
             # ordering the INDECES of the lines by how many are similar to them
@@ -75,7 +76,7 @@ class SudokuImage():
 
                     rho_i, theta_i = lines[indices[i]][0]
                     rho_j, theta_j = lines[indices[j]][0]
-                    if abs(rho_i - rho_j) < rho_threshold and abs(theta_i - theta_j) < theta_threshold:
+                    if abs(abs(rho_i) - abs(rho_j)) < rho_threshold and abs(np.sin(theta_i) - np.sin(theta_j)) < theta_threshold:
                         # if it is similar and have not been disregarded yet then drop it now
                         line_flags[indices[j]] = False
 
@@ -104,6 +105,9 @@ class SudokuImage():
             x2 = int(x0 - 1000*(-b))
             y2 = int(y0 - 1000*(a))
             return_lines.append(((x1, y1), (x2, y2)))
+            # cv2.line(self.image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        # plt.imshow(self.image)
+        # plt.show()
         return return_lines
 
     def get_inters(self, input_lines):
@@ -113,10 +117,13 @@ class SudokuImage():
         lines.sort(key=lambda x: abs(x.slope))
         # print(list(map(lambda x: x.slope, lines)))
 
+        hori_lines = lines[:10]
+        hori_lines.sort(key=lambda x: x.point[1])
+        verti_lines = lines[10:]
         # find all the intersections for each horizontal line and sort by left to right
         intersections_by_line = {0: [], 1: [], 2: [],
                                  3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []}
-        for i, hline in enumerate(lines[:10]):
+        for i, hline in enumerate(hori_lines):
             intersections_by_line[i] = sorted(list(
                 map(lambda x: hline.find_intersection(x), lines[10:])), key=lambda x: x[0])
 
@@ -158,7 +165,6 @@ class SudokuImage():
         # back to Image from numpy
         newIm = Image.fromarray(newImArray, "RGBA")
         newIm = newIm.crop(newIm.getbbox())
-        # newIm.show()
         return newIm
         # newIm.save("out.png")
 
@@ -181,7 +187,7 @@ class SudokuImage():
 
 if __name__ == "__main__":
     Su = SudokuImage(False, "images\web_sudoku.PNG")
-    lines = Su.get_lines(7)
+    lines = Su.get_lines()
     cells = Su.get_inters(lines)
 
     def draw_board(board):
@@ -195,7 +201,7 @@ if __name__ == "__main__":
     #     pop_board(i, board)
 
     print(cells[0])
-    Su.get_crop(cells[72])
+    Su.get_crop(cells[73])
 
     # pil_image = im.convert('RGB')
     # open_cv_image = np.array(pil_image)

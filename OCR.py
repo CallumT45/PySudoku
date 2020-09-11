@@ -3,14 +3,14 @@ import re
 import cv2
 import pytesseract
 import numpy as np
-# from pytesseract import Output
 from statistics import mode
 import string
 
 
 class OCR():
     def __init__(self, image):
-        self.image = image
+        height, width, channels = image.shape
+        self.image = image[2:(height-2), 2:(width-2)]
 
     def get_grayscale(self, image):
         return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -85,11 +85,11 @@ class OCR():
         gray = self.get_grayscale(deskew)
         thresh = self.thresholding(gray)
         # erode = self.erode(gray)
-        opening = self.opening(gray)
+        # opening = self.opening(gray)
         # canny = self.canny(gray)
-        morph = self.morph(gray)
+        # morph = self.morph(gray)
 
-        self.images = [gray, thresh, morph]
+        self.images = [gray, thresh]
 
     def show_images(self, cols=1, titles=None):
 
@@ -106,24 +106,29 @@ class OCR():
         plt.show()
 
     def main(self):
-        # self.show_images()
         custom_config = r'--oem 3 --psm 10 outputbase digits tessedit_char_whitelist=0123456789'
         output = []
 
         for image in self.images:
             guess = pytesseract.image_to_string(
                 image, config=custom_config)
+            if not guess:
+                print("guess")
             guess = guess.replace("\x0c", "").replace("\n", "")
             guess = guess.translate(str.maketrans('', '', string.punctuation))
             output.append(guess)
         return self.find_valid_mode(output)
 
     def find_valid_mode(self, l):
-        # print(l)
         valid_list = [item for item in l if item and int(item) < 10]
         if not valid_list:
             return 0
-        return mode(valid_list)
+
+        if len(valid_list) == 1 or valid_list[0] == valid_list[1]:
+            # self.show_images()
+            return valid_list[0]
+        else:
+            return 0
 
 
 if __name__ == "__main__":

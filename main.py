@@ -57,9 +57,19 @@ def pool_process(cells):
     p7.join()
     p8.join()
     p9.join()
+    # 21 seconds
+
+    # board = []
+    # for _ in range(9):
+    #     board.append([])
+
+    # for i in range(81):
+    #     print(i)
+    #     Su.pop_board(cells, [i], board)
+    # 36 seconds
 
     print('finished main')
-    # print(board)
+
     draw_board(board)
     board = list(map(lambda x: list(x), board))
     # pprint(board)
@@ -71,18 +81,12 @@ def pool_process(cells):
 
 if __name__ == "__main__":
 
-    Su = SudokuImage(False, "images/web_sudoku.PNG")
+    # Su = SudokuImage(False, "images/web_sudoku.PNG")
     # Su = SudokuImage("images/fuzzy_sudoku.jpg")
-    # Su = SudokuImage(True, "")
-    for size in [7, 5, 3]:
-        print(size)
-        lines = Su.get_lines(size)
-        print(len(lines))
-        if len(lines) != 20:
-            continue
-        cells = Su.get_inters(lines)
-        pool_process(cells)
-        break
+    Su = SudokuImage(True, "")
+    lines = Su.get_lines()
+    cells = Su.get_inters(lines)
+    pool_process(cells)
 
 
 # issue with ocr when from clipboard
