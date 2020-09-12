@@ -5,6 +5,7 @@ import pytesseract
 import numpy as np
 from statistics import mode
 import string
+import time
 
 
 class OCR():
@@ -83,13 +84,14 @@ class OCR():
 
         deskew = self.deskew(self.image)
         gray = self.get_grayscale(deskew)
+        gray2 = self.get_grayscale(self.image)
         thresh = self.thresholding(gray)
         # erode = self.erode(gray)
         # opening = self.opening(gray)
         # canny = self.canny(gray)
         # morph = self.morph(gray)
 
-        self.images = [gray, thresh]
+        self.images = [gray, thresh, gray2]
 
     def show_images(self, cols=1, titles=None):
 
@@ -103,12 +105,15 @@ class OCR():
                 plt.gray()
             plt.imshow(image)
             a.set_title(title)
+        # plt.savefig(f'testing/{time.time()}.png')
+        # plt.close()
+
         plt.show()
 
     def main(self):
-        custom_config = r'--oem 3 --psm 10 outputbase digits tessedit_char_whitelist=0123456789'
+        custom_config = r'--oem 3 --psm 10 outputbase digits tessedit_char_whitelist=123456789'
         output = []
-
+        # self.show_images()
         for image in self.images:
             guess = pytesseract.image_to_string(
                 image, config=custom_config)
@@ -120,6 +125,7 @@ class OCR():
         return self.find_valid_mode(output)
 
     def find_valid_mode(self, l):
+        print(l)
         valid_list = [item for item in l if item and int(item) < 10]
         if not valid_list:
             return 0

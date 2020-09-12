@@ -1,2 +1,7 @@
 canny.jpg
 \env
+.vscode/settings.json
+__pycache__/Line.cpython-37.pyc
+__pycache__/OCR.cpython-37.pyc
+__pycache__/sudoku.cpython-37.pyc
+__pycache__/sudokuImage.cpython-37.pyc
