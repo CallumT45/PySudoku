@@ -11,7 +11,8 @@ import time
 class OCR():
     def __init__(self, image, accuracy):
         height, width, channels = image.shape
-        self.image = image[5:(height-5), 5:(width-5)]
+        self.image = image[int(height*0.1):int(height*0.9),
+                           int(width*0.1):int(width*0.9)]
         self.accuracy = accuracy
 
     def get_grayscale(self, image):
@@ -28,23 +29,6 @@ class OCR():
         # threshold the image, setting all foreground pixels to
         # 255 and all background pixels to 0
         return cv2.threshold(image, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
-
-    # erosion
-
-    def erode(self, image):
-        kernel = np.ones((5, 5), np.uint8)
-        return cv2.erode(image, kernel, iterations=1)
-
-    # opening - erosion followed by dilation
-
-    def opening(self, image):
-        kernel = np.ones((5, 5), np.uint8)
-        return cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
-
-    # canny edge detection
-
-    def canny(self, image):
-        return cv2.Canny(image, 100, 200)
 
     # skew correction
 
@@ -87,9 +71,6 @@ class OCR():
         basegray = self.get_grayscale(self.image)
         gray = self.get_grayscale(deskew)
         thresh = self.thresholding(gray)
-        # erode = self.erode(gray)
-        # opening = self.opening(gray)
-        # canny = self.canny(gray)
         morph = self.morph(gray)
 
         if self.accuracy == 0:
@@ -130,7 +111,6 @@ class OCR():
         return self.find_valid_mode(output)
 
     def find_valid_mode(self, l):
-        # print(l)
         valid_list = [item for item in l if item and int(item) < 10]
         if not valid_list:
             return 0

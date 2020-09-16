@@ -1,17 +1,9 @@
 from sudokuImage import SudokuImage
 from functools import partial
 import time
-from sudoku import solve
+from sudoku import solve, board_valid, draw_board
 
 import concurrent.futures as cf
-
-
-def draw_board(board):
-    for i, line in enumerate(board):
-        if i % 3 == 0:
-            print("-"*27)
-        print(
-            f"{line[0]}  {line[1]}  {line[2]} | {line[3]}  {line[4]}  {line[5]} | {line[6]}  {line[7]}  {line[8]}")
 
 
 def pool_process(cells):
@@ -25,23 +17,21 @@ def pool_process(cells):
             i += 1
 
     draw_board(board)
-    print("\nSolving board\n")
-    solve(board)
-    draw_board(board)
+    if board_valid(board):
+        print("\nSolving board\n")
+        solve(board)
+        draw_board(board)
+    else:
+        print(
+            "Looks like there was an error reading in the data, try using a clearer image")
 
 
 if __name__ == "__main__":
     tp1 = time.time()
     # Su = SudokuImage(False, "images/web_sudoku.PNG")
-    Su = SudokuImage("images/fuzzy_sudoku.jpg", 0, False)
-    # Su = SudokuImage(True, "", accuracy=0)
+    # Su = SudokuImage("images/fuzzy_sudoku.jpg", 0, False)
+    Su = SudokuImage("", accuracy=0, clipboard=True)
     lines = Su.get_lines()
     cells = Su.get_inters(lines)
     pool_process(cells)
     print("Overall Time:", int(time.time()-tp1))
-
-
-# ocr crop should be dynamic
-# need to add timeout
-# need to add a return if 20 lines not found
-# need to add check that niput board is correct

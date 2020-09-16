@@ -95,6 +95,10 @@ class SudokuImage():
         else:
             filtered_lines = lines
 
+        if len(filtered_lines) != 20:
+            print('Lines could not be determined\nTry using a photo with just the sudoku leaving some space for the outisde border')
+            exit()
+
         return_lines = []
         for line in filtered_lines:
             rho, theta = line[0]
@@ -117,11 +121,9 @@ class SudokuImage():
         lines = list(map(lambda x: Line(x[0], x[1]), input_lines))
         # sort lines by slope, taking first half will isolate horizontal lines
         lines.sort(key=lambda x: abs(x.slope))
-        # print(list(map(lambda x: x.slope, lines)))
 
         hori_lines = lines[:10]
         hori_lines.sort(key=lambda x: x.point[1])
-        verti_lines = lines[10:]
         # find all the intersections for each horizontal line and sort by left to right
         intersections_by_line = {0: [], 1: [], 2: [],
                                  3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: []}

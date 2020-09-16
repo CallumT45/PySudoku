@@ -17,6 +17,15 @@ def solve(bo):
     return False
 
 
+def board_valid(bo):
+    for i in range(len(bo[0])):
+        for j in range(len(bo)):
+            if bo[i][j] != 0:
+                if not valid(bo, bo[i][j], (i, j)):
+                    return False
+    return True
+
+
 def valid(bo, num, pos):
     # Check row
     for i in range(len(bo[0])):
@@ -61,6 +70,7 @@ if __name__ == "__main__":
     board = [[6, 0, 0, 0, 0, 0, 9, 0, 7], [7, 9, 0, 0, 1, 0, 6, 3, 0], [4, 0, 1, 6, 0, 0, 8, 0, 0], [0, 0, 3, 7, 0, 8, 4, 0, 0], [
         0, 0, 7, 4, 0, 1, 3, 0, 0], [0, 0, 4, 9, 0, 3, 2, 0, 0], [0, 0, 9, 0, 0, 6, 5, 0, 8], [0, 7, 6, 0, 8, 0, 0, 9, 3], [8, 0, 2, 0, 0, 0, 0, 0, 6]]
     draw_board(board)
+    print(board_valid(board))
     solve(board)
     print()
     draw_board(board)
