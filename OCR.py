@@ -9,9 +9,10 @@ import time
 
 
 class OCR():
-    def __init__(self, image):
+    def __init__(self, image, accuracy):
         height, width, channels = image.shape
-        self.image = image[2:(height-2), 2:(width-2)]
+        self.image = image[5:(height-5), 5:(width-5)]
+        self.accuracy = accuracy
 
     def get_grayscale(self, image):
         return cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -83,15 +84,18 @@ class OCR():
     def process_image(self):
 
         deskew = self.deskew(self.image)
+        basegray = self.get_grayscale(self.image)
         gray = self.get_grayscale(deskew)
-        gray2 = self.get_grayscale(self.image)
         thresh = self.thresholding(gray)
         # erode = self.erode(gray)
         # opening = self.opening(gray)
         # canny = self.canny(gray)
-        # morph = self.morph(gray)
+        morph = self.morph(gray)
 
-        self.images = [gray, thresh, gray2]
+        if self.accuracy == 0:
+            self.images = [basegray]
+        else:
+            self.images = [morph, thresh, basegray]
 
     def show_images(self, cols=1, titles=None):
 
@@ -111,6 +115,7 @@ class OCR():
         plt.show()
 
     def main(self):
+        self.process_image()
         custom_config = r'--oem 3 --psm 10 outputbase digits tessedit_char_whitelist=123456789'
         output = []
         # self.show_images()
@@ -118,22 +123,21 @@ class OCR():
             guess = pytesseract.image_to_string(
                 image, config=custom_config)
             if not guess:
-                print("guess")
+                return 0
             guess = guess.replace("\x0c", "").replace("\n", "")
             guess = guess.translate(str.maketrans('', '', string.punctuation))
             output.append(guess)
         return self.find_valid_mode(output)
 
     def find_valid_mode(self, l):
-        print(l)
+        # print(l)
         valid_list = [item for item in l if item and int(item) < 10]
         if not valid_list:
             return 0
 
-        if len(valid_list) == 1 or valid_list[0] == valid_list[1]:
-            # self.show_images()
-            return valid_list[0]
-        else:
+        try:
+            return mode(valid_list)
+        except:
             return 0
 
 

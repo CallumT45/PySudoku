@@ -2,18 +2,17 @@ from PIL import Image, ImageDraw, ImageGrab
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
-import itertools
 from Line import Line
 from OCR import OCR
 
 from pprint import pprint
-from multiprocessing import Process
-import time
 
 
 class SudokuImage():
-    def __init__(self, clipboard=False, PATH=""):
+
+    def __init__(self, PATH="", accuracy=0, clipboard=False):
         self.clipboard = clipboard
+        self.accuracy = accuracy
         if clipboard:
             stall = input("Take a screenshot, then press enter")
             self.image = ImageGrab.grabclipboard().convert('RGB')
@@ -22,6 +21,9 @@ class SudokuImage():
             self.image = self.image[:, :, ::-1].copy()
         else:
             self.image = cv2.imread(PATH)
+        conv = {0: 10, 1: 30}
+        print(
+            f"You have selected an accuracy setting of {self.accuracy}! Expected run time is {conv.get(self.accuracy)} seconds")
 
     def get_lines(self):
         height, width, channels = self.image.shape
@@ -80,7 +82,7 @@ class SudokuImage():
                         # if it is similar and have not been disregarded yet then drop it now
                         line_flags[indices[j]] = False
 
-        print('number of Hough lines:', len(lines))
+        # print('number of Hough lines:', len(lines))
 
         filtered_lines = []
 
@@ -89,7 +91,7 @@ class SudokuImage():
                 if line_flags[i]:
                     filtered_lines.append(lines[i])
 
-            print('Number of filtered lines:', len(filtered_lines))
+            # print('Number of filtered lines:', len(filtered_lines))
         else:
             filtered_lines = lines
 
@@ -166,23 +168,20 @@ class SudokuImage():
         newIm = Image.fromarray(newImArray, "RGBA")
         newIm = newIm.crop(newIm.getbbox())
         return newIm
-        # newIm.save("out.png")
 
     def get_OCR(self, image):
-        opcr = OCR(image)
-        opcr.process_image()
+        opcr = OCR(image, self.accuracy)
         return opcr.main()
 
-    def pop_board(self, cells, indexes, board):
-        for i in indexes:
-            im = self.get_crop(cells[i])
+    def pop_board(self, cell):
+        im = self.get_crop(cell)
 
-            pil_image = im.convert('RGB')
-            open_cv_image = np.array(pil_image)
-            # Convert RGB to BGR
-            open_cv_image = open_cv_image[:, :, ::-1].copy()
-            num = self.get_OCR(open_cv_image)
-            board[i//9].append(int(num))
+        pil_image = im.convert('RGB')
+        open_cv_image = np.array(pil_image)
+        # Convert RGB to BGR
+        open_cv_image = open_cv_image[:, :, ::-1].copy()
+        num = self.get_OCR(open_cv_image)
+        return int(num)
 
 
 if __name__ == "__main__":
