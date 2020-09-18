@@ -1,11 +1,9 @@
 import matplotlib.pyplot as plt
-import re
 import cv2
 import pytesseract
 import numpy as np
 from statistics import mode
-import string
-import time
+import re
 
 
 class OCR():
@@ -73,10 +71,13 @@ class OCR():
         thresh = self.thresholding(gray)
         morph = self.morph(gray)
 
+        rows_same = list(filter(lambda x: np.max(x) == np.min(x), thresh))
         if self.accuracy == 0:
             self.images = [basegray]
         else:
             self.images = [morph, thresh, basegray]
+        # thress makes all background black so if all rows are the same then that means that the cell is blank so no need to perform ocr
+        return len(rows_same) == len(thresh)
 
     def show_images(self, cols=1, titles=None):
 
@@ -90,13 +91,13 @@ class OCR():
                 plt.gray()
             plt.imshow(image)
             a.set_title(title)
-        # plt.savefig(f'testing/{time.time()}.png')
-        # plt.close()
 
         plt.show()
 
     def main(self):
-        self.process_image()
+        blank = self.process_image()
+        if blank:
+            return 0
         custom_config = r'--oem 3 --psm 10 outputbase digits tessedit_char_whitelist=123456789'
         output = []
         # self.show_images()
@@ -105,8 +106,9 @@ class OCR():
                 image, config=custom_config)
             if not guess:
                 return 0
-            guess = guess.replace("\x0c", "").replace("\n", "")
-            guess = guess.translate(str.maketrans('', '', string.punctuation))
+            guess = re.sub('\D', '', guess)
+            # guess = guess.replace("\x0c", "").replace("\n", "")
+            # guess = guess.translate(str.maketrans('', '', string.punctuation))
             output.append(guess)
         return self.find_valid_mode(output)
 
@@ -114,15 +116,7 @@ class OCR():
         valid_list = [item for item in l if item and int(item) < 10]
         if not valid_list:
             return 0
-
         try:
             return mode(valid_list)
         except:
             return 0
-
-
-if __name__ == "__main__":
-
-    ocr = OCR(cv2.imread('out.PNG'))
-    ocr.process_image()
-    print(ocr.main())

@@ -1,15 +1,11 @@
 from PIL import Image, ImageDraw, ImageGrab
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 from Line import Line
 from OCR import OCR
 
-from pprint import pprint
-
 
 class SudokuImage():
-
     def __init__(self, PATH="", accuracy=0, clipboard=False):
         self.clipboard = clipboard
         self.accuracy = accuracy
@@ -21,7 +17,7 @@ class SudokuImage():
             self.image = self.image[:, :, ::-1].copy()
         else:
             self.image = cv2.imread(PATH)
-        conv = {0: 10, 1: 30}
+        conv = {0: 5, 1: 10}
         print(
             f"You have selected an accuracy setting of {self.accuracy}! Expected run time is {conv.get(self.accuracy)} seconds")
 
@@ -29,10 +25,6 @@ class SudokuImage():
         height, width, channels = self.image.shape
         gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
         edges = cv2.Canny(gray, 90, 180, apertureSize=3)
-        # kernel = np.ones((3, 3), np.uint8)
-        # edges = cv2.dilate(edges, kernel, iterations=1)
-        # kernel = np.ones((5, 5), np.uint8)
-        # edges = cv2.erode(edges, kernel, iterations=1)
 
         lines = cv2.HoughLines(edges, 1, np.pi/180, 150)
 
@@ -111,9 +103,6 @@ class SudokuImage():
             x2 = int(x0 - 1000*(-b))
             y2 = int(y0 - 1000*(a))
             return_lines.append(((x1, y1), (x2, y2)))
-            # cv2.line(self.image, (x1, y1), (x2, y2), (0, 0, 255), 2)
-        # plt.imshow(self.image)
-        # plt.show()
         return return_lines
 
     def get_inters(self, input_lines):
@@ -184,28 +173,3 @@ class SudokuImage():
         open_cv_image = open_cv_image[:, :, ::-1].copy()
         num = self.get_OCR(open_cv_image)
         return int(num)
-
-
-if __name__ == "__main__":
-    Su = SudokuImage(False, "images\web_sudoku.PNG")
-    lines = Su.get_lines()
-    cells = Su.get_inters(lines)
-
-    def draw_board(board):
-        for i, line in enumerate(board):
-            if i % 3 == 0:
-                print("-"*27)
-            print(
-                f"{line[0]}  {line[1]}  {line[2]} | {line[3]}  {line[4]}  {line[5]} | {line[6]}  {line[7]}  {line[8]}")
-
-    # for i in range(81):
-    #     pop_board(i, board)
-
-    print(cells[0])
-    Su.get_crop(cells[73])
-
-    # pil_image = im.convert('RGB')
-    # open_cv_image = np.array(pil_image)
-    # # Convert RGB to BGR
-    # open_cv_image = open_cv_image[:, :, ::-1].copy()
-    # Su.get_OCR(open_cv_image)

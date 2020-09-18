@@ -2,11 +2,10 @@ from sudokuImage import SudokuImage
 from functools import partial
 import time
 from sudoku import solve, board_valid, draw_board
-
 import concurrent.futures as cf
 
 
-def pool_process(cells):
+def pool_process(cells, Su):
     print("Reading in data")
     board = [[0 for i in range(9)] for i in range(9)]
     i = 0
@@ -26,12 +25,28 @@ def pool_process(cells):
             "Looks like there was an error reading in the data, try using a clearer image")
 
 
-if __name__ == "__main__":
+def setup():
+    clipboard = ""
+    while clipboard != 'Y' and clipboard != 'N':
+        clipboard = input("Is the image a screen grab? Y/N\n")
+    accuracy = ""
+    while accuracy != '0' and accuracy != '1':
+        accuracy = input("What level of accuracy? 0/1\n")
+    PATH = ""
+    if clipboard == "N":
+        PATH = input("Please enter the image path\n")
+    return clipboard == 'Y', int(accuracy), PATH
+
+
+def main(clipboard, accuracy, PATH):
     tp1 = time.time()
-    # Su = SudokuImage(False, "images/web_sudoku.PNG")
-    # Su = SudokuImage("images/fuzzy_sudoku.jpg", 0, False)
-    Su = SudokuImage("", accuracy=0, clipboard=True)
+    Su = SudokuImage(PATH, accuracy, clipboard)
     lines = Su.get_lines()
     cells = Su.get_inters(lines)
-    pool_process(cells)
-    print("Overall Time:", int(time.time()-tp1))
+    pool_process(cells, Su)
+    print("Overall Time:", int(time.time()-tp1), " seconds")
+
+
+if __name__ == "__main__":
+    clipboard, accuracy, PATH = setup()
+    main(clipboard, accuracy, PATH)

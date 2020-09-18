@@ -64,13 +64,3 @@ def draw_board(board):
             print("-"*27)
         print(
             f"{line[0]}  {line[1]}  {line[2]} | {line[3]}  {line[4]}  {line[5]} | {line[6]}  {line[7]}  {line[8]}")
-
-
-if __name__ == "__main__":
-    board = [[6, 0, 0, 0, 0, 0, 9, 0, 7], [7, 9, 0, 0, 1, 0, 6, 3, 0], [4, 0, 1, 6, 0, 0, 8, 0, 0], [0, 0, 3, 7, 0, 8, 4, 0, 0], [
-        0, 0, 7, 4, 0, 1, 3, 0, 0], [0, 0, 4, 9, 0, 3, 2, 0, 0], [0, 0, 9, 0, 0, 6, 5, 0, 8], [0, 7, 6, 0, 8, 0, 0, 9, 3], [8, 0, 2, 0, 0, 0, 0, 0, 6]]
-    draw_board(board)
-    print(board_valid(board))
-    solve(board)
-    print()
-    draw_board(board)
