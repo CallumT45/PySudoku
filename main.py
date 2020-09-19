@@ -7,12 +7,13 @@ import concurrent.futures as cf
 
 def pool_process(cells, Su):
     print("Reading in data")
+    # creates empty board
     board = [[0 for i in range(9)] for i in range(9)]
     i = 0
+    # for each cell, run ocr and get value then set the value of that cell equal to returned value
     with cf.ProcessPoolExecutor() as executor:
         for number, value in zip(cells, executor.map(Su.pop_board, cells)):
             board[i//9][i % 9] = value
-            # print(i, value)
             i += 1
 
     draw_board(board)
@@ -32,6 +33,9 @@ def setup():
     accuracy = ""
     while accuracy != '0' and accuracy != '1':
         accuracy = input("What level of accuracy? 0/1\n")
+    conv = {'0': 5, '1': 10}
+    print(
+        f"You have selected an accuracy setting of {accuracy}! Expected run time is {conv.get(accuracy)} seconds")
     PATH = ""
     if clipboard == "N":
         PATH = input("Please enter the image path\n")
@@ -39,12 +43,12 @@ def setup():
 
 
 def main(clipboard, accuracy, PATH):
-    tp1 = time.time()
+    tp = time.time()
     Su = SudokuImage(PATH, accuracy, clipboard)
     lines = Su.get_lines()
     cells = Su.get_inters(lines)
     pool_process(cells, Su)
-    print("Overall Time:", int(time.time()-tp1), " seconds")
+    print("Overall Time:", int(time.time()-tp), " seconds")
 
 
 if __name__ == "__main__":
