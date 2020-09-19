@@ -9,6 +9,7 @@ import re
 class OCR():
     def __init__(self, image, accuracy):
         height, width, channels = image.shape
+        # removing 10% of image on all sides to reduce liklihood of cell border in image messing up OCR
         self.image = image[int(height*0.1):int(height*0.9),
                            int(width*0.1):int(width*0.9)]
         self.accuracy = accuracy
@@ -107,12 +108,11 @@ class OCR():
             if not guess:
                 return 0
             guess = re.sub('\D', '', guess)
-            # guess = guess.replace("\x0c", "").replace("\n", "")
-            # guess = guess.translate(str.maketrans('', '', string.punctuation))
             output.append(guess)
         return self.find_valid_mode(output)
 
     def find_valid_mode(self, l):
+        # removing any elements that are empty or not a valid number for sudoku
         valid_list = [item for item in l if item and int(item) < 10]
         if not valid_list:
             return 0

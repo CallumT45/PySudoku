@@ -17,11 +17,14 @@ class SudokuImage():
             self.image = self.image[:, :, ::-1].copy()
         else:
             self.image = cv2.imread(PATH)
-        conv = {0: 5, 1: 10}
-        print(
-            f"You have selected an accuracy setting of {self.accuracy}! Expected run time is {conv.get(self.accuracy)} seconds")
 
     def get_lines(self):
+        """[First processes image then uses Houghlines to find all the lines in the image, these lines are then filtered to remove any similar lines, i.e. lines with a 
+        similar slope and in a similar place on the image]
+
+        Returns:
+            [list]: [list of tuples of start and end points for the lines]
+        """
         height, width, channels = self.image.shape
         gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
         edges = cv2.Canny(gray, 90, 180, apertureSize=3)
@@ -32,60 +35,53 @@ class SudokuImage():
             print('No lines were found')
             exit()
 
-        if filter:
-            if height < 400:
-                rho_threshold = 20
-            else:
-                rho_threshold = 40
-            theta_threshold = 0.1
+        # filter function improved version from https://stackoverflow.com/questions/48954246/find-sudoku-grid-using-opencv-and-python,
+        if height < 400:
+            rho_threshold = 20
+        else:
+            rho_threshold = 40
+        theta_threshold = 0.1
 
-            # how many lines are similar to a given one
-            similar_lines = {i: [] for i in range(len(lines))}
-            for i in range(len(lines)):
-                for j in range(len(lines)):
-                    if i == j:
-                        continue
-
-                    rho_i, theta_i = lines[i][0]
-                    rho_j, theta_j = lines[j][0]
-                    if abs(abs(rho_i) - abs(rho_j)) < rho_threshold and abs(np.sin(theta_i) - np.sin(theta_j)) < theta_threshold:
-                        similar_lines[i].append(j)
-
-            # ordering the INDECES of the lines by how many are similar to them
-            indices = [i for i in range(len(lines))]
-            indices.sort(key=lambda x: len(similar_lines[x]))
-
-            # line flags is the base for the filtering
-            line_flags = len(lines)*[True]
-            for i in range(len(lines) - 1):
-                # if we already disregarded the ith element in the ordered list then we don't care (we will not delete anything based on it and we will never reconsider using this line again)
-                if not line_flags[indices[i]]:
+        # how many lines are similar to a given one
+        similar_lines = {i: [] for i in range(len(lines))}
+        for i in range(len(lines)):
+            for j in range(len(lines)):
+                if i == j:
                     continue
 
-                # we are only considering those elements that had less similar line
-                for j in range(i + 1, len(lines)):
-                    # and only if we have not disregarded them already
-                    if not line_flags[indices[j]]:
-                        continue
+                rho_i, theta_i = lines[i][0]
+                rho_j, theta_j = lines[j][0]
+                if abs(abs(rho_i) - abs(rho_j)) < rho_threshold and abs(np.sin(theta_i) - np.sin(theta_j)) < theta_threshold:
+                    similar_lines[i].append(j)
 
-                    rho_i, theta_i = lines[indices[i]][0]
-                    rho_j, theta_j = lines[indices[j]][0]
-                    if abs(abs(rho_i) - abs(rho_j)) < rho_threshold and abs(np.sin(theta_i) - np.sin(theta_j)) < theta_threshold:
-                        # if it is similar and have not been disregarded yet then drop it now
-                        line_flags[indices[j]] = False
+        # ordering the INDECES of the lines by how many are similar to them
+        indices = [i for i in range(len(lines))]
+        indices.sort(key=lambda x: len(similar_lines[x]))
 
-        # print('number of Hough lines:', len(lines))
+        # line flags is the base for the filtering
+        line_flags = len(lines)*[True]
+        for i in range(len(lines) - 1):
+            # if we already disregarded the ith element in the ordered list then we don't care (we will not delete anything based on it and we will never reconsider using this line again)
+            if not line_flags[indices[i]]:
+                continue
+
+            # we are only considering those elements that had less similar line
+            for j in range(i + 1, len(lines)):
+                # and only if we have not disregarded them already
+                if not line_flags[indices[j]]:
+                    continue
+
+                rho_i, theta_i = lines[indices[i]][0]
+                rho_j, theta_j = lines[indices[j]][0]
+                if abs(abs(rho_i) - abs(rho_j)) < rho_threshold and abs(np.sin(theta_i) - np.sin(theta_j)) < theta_threshold:
+                    # if it is similar and have not been disregarded yet then drop it now
+                    line_flags[indices[j]] = False
 
         filtered_lines = []
 
-        if filter:
-            for i in range(len(lines)):  # filtering
-                if line_flags[i]:
-                    filtered_lines.append(lines[i])
-
-            # print('Number of filtered lines:', len(filtered_lines))
-        else:
-            filtered_lines = lines
+        for i in range(len(lines)):  # filtering
+            if line_flags[i]:
+                filtered_lines.append(lines[i])
 
         if len(filtered_lines) != 20:
             print('Lines could not be determined\nTry using a photo with just the sudoku leaving some space for the outisde border')
@@ -106,6 +102,16 @@ class SudokuImage():
         return return_lines
 
     def get_inters(self, input_lines):
+        """[Reads in the l;ist of points and converts each element to a line object, these are sorted by slope, to separate horizontal lines from vertical.
+            Horizontal lines are then sorted by y value of point, to ensure top to bottom. Then intersections are calculated for each horizontal line with each vertical line.
+            These intersections are then grouped to a cell by bottom left, bottom right, top right and then top left.]
+
+        Args:
+            input_lines ([list]): [list of start and end points of lines]
+
+        Returns:
+            [list]: [cells a list of points to describe each cell within the sudoku game]
+        """
         # maps all input lines to a Line object and places into a list
         lines = list(map(lambda x: Line(x[0], x[1]), input_lines))
         # sort lines by slope, taking first half will isolate horizontal lines
@@ -129,6 +135,14 @@ class SudokuImage():
         return cells
 
     def get_crop(self, cell):
+        """[Given 4 points, will open the image and crop to fit the shape defined by the 4 points]
+
+        Args:
+            cell ([tuple]): [4 points describing a cell]
+
+        Returns:
+            [image]: 
+        """
 
         # move outside function
         if self.clipboard:
@@ -165,6 +179,7 @@ class SudokuImage():
         return opcr.main()
 
     def pop_board(self, cell):
+        """Cropping this way is not supported with Open CV2 and so is done with pillow, but the image needs to be converted back to open cv for OCR"""
         im = self.get_crop(cell)
 
         pil_image = im.convert('RGB')
