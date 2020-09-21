@@ -1,8 +1,9 @@
-from sudokuImage import SudokuImage
+from cogs.sudokuImage import SudokuImage
+from cogs.sudoku import solve, board_valid, draw_board
+
+import concurrent.futures as cf
 from functools import partial
 import time
-from sudoku import solve, board_valid, draw_board
-import concurrent.futures as cf
 
 
 def pool_process(cells, Su):

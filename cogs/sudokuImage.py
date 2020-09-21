@@ -1,8 +1,8 @@
 from PIL import Image, ImageDraw, ImageGrab
 import cv2
 import numpy as np
-from Line import Line
-from OCR import OCR
+from cogs.Line import Line
+from cogs.OCR import OCR
 
 
 class SudokuImage():
